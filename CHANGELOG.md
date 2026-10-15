@@ -1,3 +1,15 @@
+## 0.4.0 (2026-10-14)
+
+**Depends on `agent-passport-system` ^8.0.0**, up from ^6.0.1. The OpenClaw pin (2026.9.3) is unchanged.
+
+**What changes for an operator.** The SDK moved through 7.0.0, 7.1.0, 7.2.0, 7.2.1 and 8.0.0. Its 7.0.0 notes say authority delegation verification separates `invalid`, `indeterminate` and `unsupported`, applies the draft's chain check ordering, and hands trust and revocation callbacks a plain data copy of each record. The plugin's callbacks match on the issuer and verification method strings, so the copy does not affect them. The plugin returns the SDK result unchanged from `aps.verifyDelegation`, so the new ordering and codes reach the caller as the SDK reports them. A chain with several faults can now report a different first failure than 0.3.0 did.
+
+For the cases in the plugin test suite the states are the same under 6.0.1 and 8.0.0. No issuer key configured is `indeterminate` (`KEY_RESOLUTION_FAILED`). A configured key that does not match is `invalid` (`SIGNATURE_INVALID`). A root the operator does not trust is `invalid` (`ROOT_UNTRUSTED`). An unrecognised record type is `unsupported`. A chain that verifies on everything else is still `indeterminate` (`REVOCATION_UNKNOWN`), because the plugin has no revocation feed. Only `state: "valid"` with `valid: true` means the chain was accepted, and no non-valid state sets `valid: true`.
+
+**Code changes.** None in `src/`. Tests added in `tests/delegation-trust.test.ts` cover each state above and assert that `valid` is true only when `state` is `valid`.
+
+**What does not change.** Trust anchors still come only from `policy.delegation.trustedIssuers`. Self-signed roots are still refused unless `allowSelfSignedRoot` is set. Revocation still resolves to `unknown`. Install gating, high-risk tool gating, grade lookup and message signing are untouched. The plugin does not claim Pattern v0.1 conformance, as in 0.3.0. SDK 8.0.0 changes to passport v2, principal binding, Cycles evidence and `computeExternalActionRefV1` are not used by this plugin.
+
 ## 0.3.0
 
 First release verified end-to-end against OpenClaw 2026.9.3. Compatibility is currently declared only for that host version.
