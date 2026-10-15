@@ -16,6 +16,11 @@ import { fileURLToPath } from 'node:url'
 import { createStoredZip } from './stored-zip.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
+// The gateway colours its log lines unless NO_COLOR is set, so strip ANSI escapes before matching.
+const GATEWAY_READY = /\[gateway\] ready/
+// eslint-disable-next-line no-control-regex
+const stripAnsi = (text: string): string => text.replace(/\u001b\[[0-9;]*m/g, '')
+
 export const REPO_ROOT = resolve(HERE, '..', '..')
 export const OPENCLAW_CLI = join(REPO_ROOT, 'node_modules', 'openclaw', 'openclaw.mjs')
 export const DENY_NETWORK_PRELOAD = join(HERE, 'deny-external-network.mjs')
@@ -298,14 +303,14 @@ export async function bootGateway(params: {
     child.stderr?.on('data', (c: string) => { log += c })
 
     const deadline = Date.now() + 90_000
-    while (Date.now() < deadline && !/\[gateway\] ready/.test(log) && !spawnError) {
+    while (Date.now() < deadline && !GATEWAY_READY.test(stripAnsi(log)) && !spawnError) {
       await new Promise((r) => setTimeout(r, 250))
     }
     if (spawnError) {
       child.kill('SIGKILL')
       throw new Error(`gateway failed to spawn: ${spawnError.message}`)
     }
-    if (!/\[gateway\] ready/.test(log)) {
+    if (!GATEWAY_READY.test(stripAnsi(log))) {
       child.kill('SIGKILL')
       throw new Error(`gateway did not become ready. captured output:\n${log || '(nothing)'}`)
     }

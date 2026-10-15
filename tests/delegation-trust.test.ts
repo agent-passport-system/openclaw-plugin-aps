@@ -156,6 +156,66 @@ describe('authority-aware delegation verification', () => {
   })
 })
 
+describe('verdict states the operator can see (SDK 8.x)', () => {
+  const anchorFor = (keys: { publicKey: string }) =>
+    configWith([{ issuer: ISSUER, publicKey: keys.publicKey, verificationMethod: VM }])
+
+  it('never reports valid: true unless state is valid, across every outcome', () => {
+    const keys = generateKeyPair()
+    const other = generateKeyPair()
+    const root = mintRoot(keys.privateKey)
+    const selfSigned = mintRoot(keys.privateKey, { subject: ISSUER })
+    const outcomes = [
+      verifyChain(anchorFor(keys), [root]),
+      verifyChain(DEFAULT_CONFIG, [root]),
+      verifyChain(anchorFor(other), [root]),
+      verifyChain(anchorFor(keys), [selfSigned]),
+      verifyChain(anchorFor(keys), [{ ...root, record_type: 'aps:authority-delegation:v9' }]),
+      verifyChain(anchorFor(keys), [{ not: 'real' }]),
+      verifyChain(anchorFor(keys), []),
+    ]
+    for (const r of outcomes) {
+      expect(r.valid).toBe(r.state === 'valid')
+      expect(r.valid).toBe(false)
+    }
+  })
+
+  it('maps an issuer with no configured key to indeterminate, not invalid', () => {
+    const keys = generateKeyPair()
+    const result = verifyChain(DEFAULT_CONFIG, [mintRoot(keys.privateKey)])
+    expect(result.state).toBe('indeterminate')
+    expect(codes(result)).toContain('KEY_RESOLUTION_FAILED')
+  })
+
+  it('maps a wrong configured key to invalid', () => {
+    const keys = generateKeyPair()
+    const result = verifyChain(anchorFor(generateKeyPair()), [mintRoot(keys.privateKey)])
+    expect(result.state).toBe('invalid')
+    expect(codes(result)).toContain('SIGNATURE_INVALID')
+  })
+
+  it('maps a root the operator refuses to invalid', () => {
+    const keys = generateKeyPair()
+    const result = verifyChain(anchorFor(keys), [mintRoot(keys.privateKey, { subject: ISSUER })])
+    expect(result.state).toBe('invalid')
+    expect(codes(result)).toContain('ROOT_UNTRUSTED')
+  })
+
+  it('maps an unrecognised record type to unsupported', () => {
+    const keys = generateKeyPair()
+    const root = mintRoot(keys.privateKey, { record_type: 'aps:authority-delegation:v9' })
+    const result = verifyChain(anchorFor(keys), [root])
+    expect(result.state).toBe('unsupported')
+    expect(result.valid).toBe(false)
+  })
+
+  it('maps a chain that is not a container to invalid', () => {
+    const result = verifyChain(DEFAULT_CONFIG, [])
+    expect(result.state).toBe('invalid')
+    expect(result.valid).toBe(false)
+  })
+})
+
 describe('gateway trust lookup', () => {
   it('reads found:false as "not known", not as a grade of 0', async () => {
     const { checkGrade } = await vi.importActual<typeof import('../src/aps-client.js')>('../src/aps-client.js')

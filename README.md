@@ -8,7 +8,7 @@ OpenClaw plugin: Agent Passport System trust verification provider. Targets [Age
 
 The plugin gates plugin installs against the APS public trust registry on the Gateway `plugins.install` path, gates high-risk tool calls behind explicit approval, and exposes APS primitives (grade lookup, delegation verification, message signing) via OpenClaw gateway RPC. It runs entirely in the OpenClaw plugin lifecycle and adds no requirement on OpenClaw core.
 
-Delegation verification is implemented through `agent-passport-system` 6.0.1. The plugin contains no independent verifier. Delegation verification uses the authority-aware chain verifier with trust anchors the operator configures, so an integrity result is never returned as an authorization decision (SDK 6.0.0, advisory GHSA-r2fw-x6mg-f6h8).
+Delegation verification is implemented through `agent-passport-system` 8.0.0. The plugin contains no independent verifier. Delegation verification uses the authority-aware chain verifier with trust anchors the operator configures, so an integrity result is never returned as an authorization decision (SDK 6.0.0, advisory GHSA-r2fw-x6mg-f6h8). The `state` field of the result is `valid`, `invalid`, `indeterminate` or `unsupported`, and only `state: "valid"` (with `valid: true`) is an accepted chain.
 
 ## Install
 
